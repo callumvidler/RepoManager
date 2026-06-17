@@ -40,10 +40,15 @@ jobs:
           node-version: 22
           cache: npm
 
-      # Runs the postinstall electron-rebuild so node-pty matches this
-      # platform's Electron ABI.
+      # Use `npm install`, not `npm ci`. The committed lockfile only records the
+      # dev machine's platform node for rollup's native binary (npm bug #4828),
+      # so `npm ci` — which installs strictly from the lockfile — would miss the
+      # Windows binary (@rollup/rollup-win32-x64-msvc) and break the build.
+      # `npm install` reconciles the tree and pulls the correct per-platform
+      # binary on each runner. It also runs the postinstall electron-rebuild so
+      # node-pty matches this platform's Electron ABI.
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Build renderer & main
         run: npm run build
