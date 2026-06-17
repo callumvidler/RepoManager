@@ -15,7 +15,7 @@ interface Props {
  * panel is a real interactive PTY running `claude` in the repo's cwd. Panels can
  * be added dynamically and reflow with CSS auto-fit.
  */
-export function ClaudePanelGrid({ repo }: Props): JSX.Element {
+export function ClaudePanelGrid({ repo }: Props): React.JSX.Element {
   const panels = useAppStore((s) => s.panelsByRepo[repo.id] ?? [])
   const addPanel = useAppStore((s) => s.addPanel)
   const removePanel = useAppStore((s) => s.removePanel)
@@ -101,7 +101,7 @@ function PanelTitle({
 }: {
   title: string
   onRename: (title: string) => void
-}): JSX.Element {
+}): React.JSX.Element {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(title)
   const inputRef = useRef<HTMLInputElement>(null)

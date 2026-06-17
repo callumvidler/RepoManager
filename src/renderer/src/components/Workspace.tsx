@@ -1,4 +1,4 @@
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
+import { Panel, Group, Separator, useDefaultLayout } from 'react-resizable-panels'
 import { FolderGit2 } from 'lucide-react'
 import { ClaudePanelGrid } from './ClaudePanelGrid'
 import { AppOutputTerminal } from './AppOutputTerminal'
@@ -6,7 +6,7 @@ import { GitControls } from './GitControls'
 import { useAppStore } from '@/store/useAppStore'
 import type { RepoRecord } from '../../../preload/index'
 
-export function Workspace(): JSX.Element {
+export function Workspace(): React.JSX.Element {
   const repos = useAppStore((s) => s.repos)
   const openedRepoIds = useAppStore((s) => s.openedRepoIds)
   const selectedRepoId = useAppStore((s) => s.selectedRepoId)
@@ -39,7 +39,13 @@ export function Workspace(): JSX.Element {
   )
 }
 
-function WorkspaceBody({ repo }: { repo: RepoRecord }): JSX.Element {
+function WorkspaceBody({ repo }: { repo: RepoRecord }): React.JSX.Element {
+  // v4 replaces the old `autoSaveId` with an explicit layout/storage hook.
+  // Persist each repo's split to localStorage, keyed by repo id.
+  const { defaultLayout, onLayoutChanged } = useDefaultLayout({
+    id: `repo-manager-split-${repo.id}`,
+    storage: localStorage
+  })
   return (
     <div className="flex h-full min-w-0 flex-1 flex-col">
       <div
@@ -52,19 +58,20 @@ function WorkspaceBody({ repo }: { repo: RepoRecord }): JSX.Element {
         <GitControls repo={repo} />
       </div>
 
-      <PanelGroup
-        direction="vertical"
+      <Group
+        orientation="vertical"
         className="min-h-0 flex-1"
-        autoSaveId={`repo-manager-split-${repo.id}`}
+        defaultLayout={defaultLayout}
+        onLayoutChanged={onLayoutChanged}
       >
         <Panel defaultSize={65} minSize={20}>
           <ClaudePanelGrid repo={repo} />
         </Panel>
-        <PanelResizeHandle className="h-[3px] bg-border transition-colors hover:bg-ring data-[resize-handle-state=drag]:bg-ring" />
+        <Separator className="h-[3px] bg-border transition-colors hover:bg-ring" />
         <Panel defaultSize={35} minSize={10}>
           <AppOutputTerminal repo={repo} />
         </Panel>
-      </PanelGroup>
+      </Group>
     </div>
   )
 }

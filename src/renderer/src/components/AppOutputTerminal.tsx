@@ -13,7 +13,7 @@ interface Props {
  * Dedicated terminal that runs the repo's dev/run command. The command is
  * auto-detected from package.json but editable and persisted per repo.
  */
-export function AppOutputTerminal({ repo }: Props): JSX.Element {
+export function AppOutputTerminal({ repo }: Props): React.JSX.Element {
   const [command, setCommand] = useState<string>('')
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')

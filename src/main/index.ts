@@ -1,6 +1,7 @@
 import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import appIcon from '../icons/repo-manager-fork.png?asset'
 import { registerRepoHandlers } from './ipc/repos'
 import { registerPtyHandlers, killAllPtys } from './ipc/pty'
 import { registerGitHandlers } from './ipc/git'
@@ -15,6 +16,9 @@ function createWindow(): void {
     show: false,
     autoHideMenuBar: true,
     title: 'RepoManager',
+    // macOS draws the window/dock icon from the app bundle; on Windows the
+    // BrowserWindow icon drives the taskbar (notably in dev).
+    ...(process.platform === 'darwin' ? {} : { icon: appIcon }),
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     webPreferences: {
       preload: join(__dirname, '../preload/index.mjs'),

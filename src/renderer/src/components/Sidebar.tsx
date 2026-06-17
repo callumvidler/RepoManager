@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
 import { SettingsDialog } from './SettingsDialog'
 
-export function Sidebar(): JSX.Element {
+export function Sidebar(): React.JSX.Element {
   const repos = useAppStore((s) => s.repos)
   const selectedRepoId = useAppStore((s) => s.selectedRepoId)
   const setRepos = useAppStore((s) => s.setRepos)

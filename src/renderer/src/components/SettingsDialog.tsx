@@ -40,7 +40,7 @@ const THEME_OPTIONS: { value: ThemeMode; label: string; icon: LucideIcon }[] = [
   { value: 'system', label: 'System', icon: Monitor }
 ]
 
-export function SettingsDialog({ open, onClose }: Props): JSX.Element | null {
+export function SettingsDialog({ open, onClose }: Props): React.JSX.Element | null {
   const [tab, setTab] = useState<TabId>('appearance')
 
   useEffect(() => {
@@ -226,7 +226,7 @@ function Section({
   title: string
   description?: string
   children: React.ReactNode
-}): JSX.Element {
+}): React.JSX.Element {
   return (
     <div className="space-y-5">
       <div className="space-y-1">
@@ -249,7 +249,7 @@ function Field({
   /** Render the control to the right of the label (e.g. a toggle) instead of below. */
   inline?: boolean
   children: React.ReactNode
-}): JSX.Element {
+}): React.JSX.Element {
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between gap-4">
@@ -274,7 +274,7 @@ function Select({
   onChange: (value: string) => void
   options: { value: string; label: string }[]
   className?: string
-}): JSX.Element {
+}): React.JSX.Element {
   return (
     <select
       value={value}
@@ -299,7 +299,7 @@ function Toggle({
 }: {
   checked: boolean
   onChange: (value: boolean) => void
-}): JSX.Element {
+}): React.JSX.Element {
   return (
     <button
       role="switch"

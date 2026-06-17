@@ -9,7 +9,7 @@ interface Props {
   onChanged: (ok: boolean, message: string) => void
 }
 
-export function BranchSwitcher({ repo, currentBranch, onChanged }: Props): JSX.Element {
+export function BranchSwitcher({ repo, currentBranch, onChanged }: Props): React.JSX.Element {
   const [open, setOpen] = useState(false)
   const [branches, setBranches] = useState<string[]>([])
   const [current, setCurrent] = useState(currentBranch)

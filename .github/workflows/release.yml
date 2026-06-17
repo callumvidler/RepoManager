@@ -21,12 +21,7 @@ jobs:
       matrix:
         include:
           - os: macos-latest
-          # Pinned to 2022 (VS 2022). windows-latest now resolves to the
-          # win25-vs2026 image, whose Visual Studio 2026 isn't recognised by
-          # the older node-gyp bundled in @electron/rebuild, breaking the
-          # node-pty native rebuild during npm ci.
-          - os: windows-2022
-          - os: ubuntu-latest
+          - os: windows-latest
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -36,7 +31,9 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Match the Node version Electron 42 bundles, and satisfy Vite 7's
+          # Node >= 20.19 / 22.12 requirement.
+          node-version: 22
           cache: npm
 
       # Runs the postinstall electron-rebuild so node-pty matches this

@@ -13,7 +13,7 @@ interface Props {
 
 type Feedback = { kind: 'ok' | 'error'; text: string } | null
 
-export function GitControls({ repo }: Props): JSX.Element | null {
+export function GitControls({ repo }: Props): React.JSX.Element | null {
   const [status, setStatus] = useState<GitStatus | null>(null)
   const [commitOpen, setCommitOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -135,7 +135,7 @@ function CommitDialog({
   status: GitStatus | null
   onClose: () => void
   onDone: (fb: Feedback) => void
-}): JSX.Element {
+}): React.JSX.Element {
   const [subject, setSubject] = useState('')
   const [description, setDescription] = useState('')
   const [busy, setBusy] = useState(false)

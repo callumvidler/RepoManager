@@ -3,7 +3,7 @@ import { Sidebar } from '@/components/Sidebar'
 import { Workspace } from '@/components/Workspace'
 import { useSettingsStore } from '@/store/useSettingsStore'
 
-function App(): JSX.Element {
+function App(): React.JSX.Element {
   const theme = useSettingsStore((s) => s.theme)
 
   useEffect(() => {

@@ -11,18 +11,16 @@ files:
 asarUnpack:
   - '**/node_modules/node-pty/**'
 mac:
+  icon: src/icons/repo-manager-fork.icns
   target:
     - dmg
     - zip
   category: public.app-category.developer-tools
   artifactName: ${productName}-${version}-${arch}.${ext}
 win:
+  icon: src/icons/repo-manager-fork.ico
   target:
     - nsis
-linux:
-  target:
-    - AppImage
-  category: Development
 npmRebuild: true
 # Publish installers straight to a GitHub Release as release assets (which do
 # NOT count against the Actions artifact storage quota). `releaseType: draft`

@@ -29,7 +29,7 @@ export function TerminalPane({
   className,
   onExit,
   onError
-}: TerminalPaneProps): JSX.Element {
+}: TerminalPaneProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const fitRef = useRef<FitAddon | null>(null)

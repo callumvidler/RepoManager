@@ -19,7 +19,7 @@ interface Props {
   onClose: () => void
 }
 
-export function NewClaudePanelDialog({ defaultTitle, onCreate, onClose }: Props): JSX.Element {
+export function NewClaudePanelDialog({ defaultTitle, onCreate, onClose }: Props): React.JSX.Element {
   const settings = useSettingsStore()
 
   const [title, setTitle] = useState(defaultTitle)
@@ -155,7 +155,7 @@ function Select({
   value: string
   onChange: (value: string) => void
   options: { value: string; label: string }[]
-}): JSX.Element {
+}): React.JSX.Element {
   return (
     <select
       value={value}
@@ -179,7 +179,7 @@ function Row({
   label: string
   description?: string
   children: React.ReactNode
-}): JSX.Element {
+}): React.JSX.Element {
   return (
     <div className="space-y-1.5">
       <label className="block text-xs font-medium text-muted-foreground">
@@ -201,7 +201,7 @@ function ToggleRow({
   description?: string
   checked: boolean
   onChange: (value: boolean) => void
-}): JSX.Element {
+}): React.JSX.Element {
   return (
     <div className="flex items-center justify-between gap-4">
       <div className="min-w-0">

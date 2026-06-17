@@ -25,7 +25,7 @@ function nextVersion(current: string, type: ReleaseType): string | null {
   return `${major}.${minor}.${patch}`
 }
 
-export function ReleaseSwitcher({ repo, onReleased }: Props): JSX.Element | null {
+export function ReleaseSwitcher({ repo, onReleased }: Props): React.JSX.Element | null {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [busy, setBusy] = useState<ReleaseType | null>(null)
