@@ -41,6 +41,18 @@ export interface BumpResult extends GitResult {
   tag?: string
 }
 
+export interface WorkflowInfo {
+  id: string
+  name: string
+  path: string
+}
+
+export interface WorkflowList {
+  ok: boolean
+  workflows: WorkflowInfo[]
+  error?: string
+}
+
 async function git(repoPath: string, args: string[]): Promise<{ stdout: string; stderr: string }> {
   const env = await getLoginShellEnv()
   return execFileAsync('git', args, {
@@ -262,6 +274,50 @@ export function registerGitHandlers(): void {
         await git(repoPath, ['push', 'origin', tag])
 
         return { ok: true, version, tag, output: `Released ${tag} and pushed` }
+      } catch (err) {
+        return { ok: false, error: errText(err) }
+      }
+    }
+  )
+
+  ipcMain.handle('git:workflows', async (_e, repoPath: string): Promise<WorkflowList> => {
+    if (!isValidDir(repoPath)) return { ok: false, workflows: [], error: 'Folder not found' }
+    try {
+      const env = await getLoginShellEnv()
+      const { stdout } = await execFileAsync(
+        'gh',
+        ['workflow', 'list', '--json', 'id,name,path,state'],
+        { cwd: repoPath, env: env as { [key: string]: string }, encoding: 'utf8' }
+      )
+      const raw = JSON.parse(stdout) as { id: number | string; name: string; path: string; state: string }[]
+      const workflows = raw
+        .filter((w) => w.state === 'active')
+        .map((w) => ({ id: String(w.id), name: w.name, path: w.path }))
+      return { ok: true, workflows }
+    } catch (err) {
+      return { ok: false, workflows: [], error: errText(err) }
+    }
+  })
+
+  ipcMain.handle(
+    'git:dispatchBuild',
+    async (_e, repoPath: string, workflowId: string, ref?: string): Promise<GitResult> => {
+      if (!isValidDir(repoPath)) return { ok: false, error: 'Folder not found' }
+      if (!workflowId?.trim()) return { ok: false, error: 'Workflow is required' }
+      try {
+        // Default to the current branch when no explicit ref (e.g. a version tag) is given.
+        let targetRef = ref?.trim()
+        if (!targetRef) {
+          const { stdout } = await git(repoPath, ['rev-parse', '--abbrev-ref', 'HEAD'])
+          targetRef = stdout.trim()
+        }
+        const env = await getLoginShellEnv()
+        const { stdout, stderr } = await execFileAsync(
+          'gh',
+          ['workflow', 'run', workflowId.trim(), '--ref', targetRef],
+          { cwd: repoPath, env: env as { [key: string]: string }, encoding: 'utf8' }
+        )
+        return { ok: true, output: `${stdout}${stderr}`.trim() || `Build triggered on ${targetRef}` }
       } catch (err) {
         return { ok: false, error: errText(err) }
       }

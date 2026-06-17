@@ -55,6 +55,18 @@ export interface BumpResult extends GitResult {
   tag?: string
 }
 
+export interface WorkflowInfo {
+  id: string
+  name: string
+  path: string
+}
+
+export interface WorkflowList {
+  ok: boolean
+  workflows: WorkflowInfo[]
+  error?: string
+}
+
 const api = {
   repos: {
     list: (): Promise<RepoRecord[]> => ipcRenderer.invoke('repos:list'),
@@ -105,7 +117,11 @@ const api = {
     versions: (repoPath: string): Promise<GitVersions> =>
       ipcRenderer.invoke('git:versions', repoPath),
     bumpVersion: (repoPath: string, type: ReleaseType): Promise<BumpResult> =>
-      ipcRenderer.invoke('git:bumpVersion', repoPath, type)
+      ipcRenderer.invoke('git:bumpVersion', repoPath, type),
+    workflows: (repoPath: string): Promise<WorkflowList> =>
+      ipcRenderer.invoke('git:workflows', repoPath),
+    dispatchBuild: (repoPath: string, workflowId: string, ref?: string): Promise<GitResult> =>
+      ipcRenderer.invoke('git:dispatchBuild', repoPath, workflowId, ref)
   }
 }
 

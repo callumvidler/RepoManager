@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { Tag, ChevronDown, Loader2, Rocket, AlertCircle } from 'lucide-react'
+import { Tag, ChevronDown, Loader2, Rocket, AlertCircle, RotateCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { ReleaseType, RepoRecord } from '../../../preload/index'
+import type { ReleaseType, RepoRecord, WorkflowInfo } from '../../../preload/index'
 
 interface Props {
   repo: RepoRecord
@@ -33,6 +33,10 @@ export function ReleaseSwitcher({ repo, onReleased }: Props): JSX.Element | null
   const [tags, setTags] = useState<string[]>([])
   const [isNode, setIsNode] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [workflows, setWorkflows] = useState<WorkflowInfo[]>([])
+  const [wfError, setWfError] = useState<string | null>(null)
+  const [wfLoading, setWfLoading] = useState(false)
+  const [rebuilding, setRebuilding] = useState<string | null>(null)
   const ref = useRef<HTMLDivElement>(null)
 
   // Load the current version up front so the button can render it.
@@ -68,10 +72,41 @@ export function ReleaseSwitcher({ repo, onReleased }: Props): JSX.Element | null
     setLoading(false)
   }
 
+  const loadWorkflows = async (): Promise<void> => {
+    setWfLoading(true)
+    setWfError(null)
+    const res = await window.api.git.workflows(repo.path)
+    setWorkflows(res.workflows)
+    setWfError(res.ok ? null : (res.error ?? 'Could not list workflows'))
+    setWfLoading(false)
+  }
+
   const toggle = (): void => {
     const next = !open
     setOpen(next)
-    if (next) void load()
+    if (next) {
+      void load()
+      void loadWorkflows()
+    }
+  }
+
+  const rebuild = async (wf: WorkflowInfo): Promise<void> => {
+    setRebuilding(wf.id)
+    setError(null)
+    // Rebuild the exact tagged commit when this version is tagged; otherwise
+    // fall back to the current branch (handled in the main process).
+    const tag = current
+      ? tags.find((t) => t.replace(/^v/, '') === current)
+      : undefined
+    const res = await window.api.git.dispatchBuild(repo.path, wf.id, tag)
+    setRebuilding(null)
+    if (res.ok) {
+      setOpen(false)
+      onReleased(true, `Rebuild triggered${current ? ` for v${current}` : ''}`)
+    } else {
+      setError(res.error ?? 'Rebuild failed')
+      onReleased(false, res.error ?? 'Rebuild failed')
+    }
   }
 
   const bump = async (type: ReleaseType): Promise<void> => {
@@ -149,7 +184,7 @@ export function ReleaseSwitcher({ repo, onReleased }: Props): JSX.Element | null
                 <button
                   key={type}
                   onClick={() => bump(type)}
-                  disabled={busy !== null}
+                  disabled={busy !== null || rebuilding !== null}
                   className="flex w-full items-center gap-2 rounded px-3 py-1.5 text-left text-xs hover:bg-accent disabled:opacity-50"
                 >
                   {busy === type ? (
@@ -167,6 +202,44 @@ export function ReleaseSwitcher({ repo, onReleased }: Props): JSX.Element | null
                 </button>
               )
             })}
+          </div>
+
+          <div className="border-t p-1">
+            <div className="px-2 pb-1 pt-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              Rebuild without bumping
+            </div>
+            {wfLoading && <div className="px-3 py-1.5 text-xs text-muted-foreground">Loading…</div>}
+            {!wfLoading && wfError && (
+              <div className="px-3 py-1.5 text-[11px] text-muted-foreground">{wfError}</div>
+            )}
+            {!wfLoading && !wfError && workflows.length === 0 && (
+              <div className="px-3 py-1.5 text-[11px] text-muted-foreground">
+                No GitHub Actions workflows found
+              </div>
+            )}
+            {!wfLoading &&
+              !wfError &&
+              workflows.map((wf) => (
+                <button
+                  key={wf.id}
+                  onClick={() => rebuild(wf)}
+                  disabled={busy !== null || rebuilding !== null}
+                  title={`Re-run "${wf.name}"${current ? ` for v${current}` : ''} without a version bump`}
+                  className="flex w-full items-center gap-2 rounded px-3 py-1.5 text-left text-xs hover:bg-accent disabled:opacity-50"
+                >
+                  {rebuilding === wf.id ? (
+                    <Loader2 className="size-3.5 shrink-0 animate-spin" />
+                  ) : (
+                    <RotateCw className="size-3.5 shrink-0" />
+                  )}
+                  <span className="truncate">{wf.name}</span>
+                  {current && (
+                    <span className="ml-auto rounded bg-accent px-1.5 py-0.5 text-[10px] text-accent-foreground">
+                      v{current}
+                    </span>
+                  )}
+                </button>
+              ))}
           </div>
 
           {error && (

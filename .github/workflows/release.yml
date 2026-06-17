@@ -21,7 +21,11 @@ jobs:
       matrix:
         include:
           - os: macos-latest
-          - os: windows-latest
+          # Pinned to 2022 (VS 2022). windows-latest now resolves to the
+          # win25-vs2026 image, whose Visual Studio 2026 isn't recognised by
+          # the older node-gyp bundled in @electron/rebuild, breaking the
+          # node-pty native rebuild during npm ci.
+          - os: windows-2022
           - os: ubuntu-latest
     runs-on: ${{ matrix.os }}
 
