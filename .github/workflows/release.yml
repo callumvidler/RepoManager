@@ -40,13 +40,20 @@ jobs:
           node-version: 22
           cache: npm
 
-      # Use `npm install`, not `npm ci`. The committed lockfile only records the
-      # dev machine's platform node for rollup's native binary (npm bug #4828),
-      # so `npm ci` — which installs strictly from the lockfile — would miss the
-      # Windows binary (@rollup/rollup-win32-x64-msvc) and break the build.
-      # `npm install` reconciles the tree and pulls the correct per-platform
-      # binary on each runner. It also runs the postinstall electron-rebuild so
-      # node-pty matches this platform's Electron ABI.
+      # The committed package-lock.json is generated on the dev machine, so it
+      # only contains an installed package node for that platform's rollup native
+      # binary (npm bug #4828). On other platforms `npm install` trusts the
+      # lockfile as complete and never fetches the missing binary (e.g.
+      # @rollup/rollup-win32-x64-msvc), breaking the build. Deleting the lockfile
+      # forces npm to resolve a fresh, platform-correct tree on each runner and
+      # pull the right per-platform binary. Cross-platform delete via node so it
+      # works on both the macOS (bash) and Windows (pwsh) runners.
+      - name: Remove platform-specific lockfile
+        run: node -e "require('fs').rmSync('package-lock.json',{force:true})"
+
+      # `npm install` (not `npm ci`) so it can build the tree without a lockfile.
+      # Its postinstall also runs electron-rebuild so node-pty matches this
+      # platform's Electron ABI.
       - name: Install dependencies
         run: npm install
 

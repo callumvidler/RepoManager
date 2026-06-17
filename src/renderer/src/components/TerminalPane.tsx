@@ -15,6 +15,10 @@ export interface TerminalPaneProps {
   className?: string
   onExit?: (code: number) => void
   onError?: (message: string) => void
+  /** Fired when the session rings the terminal bell (waiting for the user). */
+  onAttention?: () => void
+  /** Fired when the user types into this terminal (acknowledging it). */
+  onActivity?: () => void
 }
 
 /**
@@ -28,7 +32,9 @@ export function TerminalPane({
   spawnKey = 0,
   className,
   onExit,
-  onError
+  onError,
+  onAttention,
+  onActivity
 }: TerminalPaneProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
@@ -42,6 +48,11 @@ export function TerminalPane({
   const fontFamilyRef = useRef(fontFamily)
   fontSizeRef.current = fontSize
   fontFamilyRef.current = fontFamily
+  // Latest attention/activity callbacks, read inside the once-per-spawn effect.
+  const onAttentionRef = useRef(onAttention)
+  const onActivityRef = useRef(onActivity)
+  onAttentionRef.current = onAttention
+  onActivityRef.current = onActivity
 
   useEffect(() => {
     const el = containerRef.current
@@ -78,7 +89,13 @@ export function TerminalPane({
       }
     }
 
-    const sendInput = term.onData((data) => window.api.pty.input(ptyId, data))
+    const sendInput = term.onData((data) => {
+      onActivityRef.current?.()
+      window.api.pty.input(ptyId, data)
+    })
+
+    // Claude Code rings the terminal bell when it finishes a turn / needs input.
+    const offBell = term.onBell(() => onAttentionRef.current?.())
 
     const offData = window.api.pty.onData((payload) => {
       if (payload.ptyId === ptyId) term.write(payload.data)
@@ -129,6 +146,7 @@ export function TerminalPane({
       ro.disconnect()
       offData()
       offExit()
+      offBell.dispose()
       sendInput.dispose()
       window.api.pty.kill(ptyId)
       term.dispose()

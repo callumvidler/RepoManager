@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { FolderGit2, Plus, Trash2, FolderOpen, Settings } from 'lucide-react'
+import { FolderGit2, Plus, Trash2, FolderOpen, Settings, Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
+import { useSettingsStore } from '@/store/useSettingsStore'
 import { SettingsDialog } from './SettingsDialog'
 
 export function Sidebar(): React.JSX.Element {
@@ -11,7 +12,17 @@ export function Sidebar(): React.JSX.Element {
   const upsertRepo = useAppStore((s) => s.upsertRepo)
   const removeRepo = useAppStore((s) => s.removeRepo)
   const selectRepo = useAppStore((s) => s.selectRepo)
+  const panelsByRepo = useAppStore((s) => s.panelsByRepo)
+  const attentionPanels = useAppStore((s) => s.attentionPanels)
+  const attentionAlerts = useSettingsStore((s) => s.attentionAlerts)
   const [settingsOpen, setSettingsOpen] = useState(false)
+
+  // A repo flags for attention when one of its panels is waiting — but never the
+  // one you're already viewing (the panel highlight already shows that).
+  const repoNeedsAttention = (repoId: string): boolean =>
+    attentionAlerts &&
+    repoId !== selectedRepoId &&
+    (panelsByRepo[repoId] ?? []).some((p) => attentionPanels[p.id])
 
   useEffect(() => {
     window.api.repos.list().then(setRepos)
@@ -63,12 +74,25 @@ export function Sidebar(): React.JSX.Element {
             onClick={() => selectRepo(repo.id)}
             className={cn(
               'group mb-1 flex cursor-default items-center gap-2 rounded-md px-2 py-2 text-sm',
-              repo.id === selectedRepoId ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'
+              repo.id === selectedRepoId ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50',
+              repoNeedsAttention(repo.id) && repo.id !== selectedRepoId && 'bg-amber-400/10'
             )}
           >
-            <FolderGit2 className="size-4 shrink-0 text-muted-foreground" />
+            {repoNeedsAttention(repo.id) ? (
+              <Bell className="size-4 shrink-0 animate-pulse text-amber-400" />
+            ) : (
+              <FolderGit2 className="size-4 shrink-0 text-muted-foreground" />
+            )}
             <div className="min-w-0 flex-1">
-              <div className="truncate font-medium">{repo.name}</div>
+              <div className="flex items-center gap-1.5">
+                <span className="truncate font-medium">{repo.name}</span>
+                {repoNeedsAttention(repo.id) && (
+                  <span
+                    className="size-2 shrink-0 rounded-full bg-amber-400"
+                    title="Claude is waiting for a response"
+                  />
+                )}
+              </div>
               <div className="truncate text-xs text-muted-foreground">{repo.path}</div>
             </div>
             <button

@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { Plus, X, Sparkles, Pencil } from 'lucide-react'
+import { Plus, X, Sparkles, Pencil, Bell } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { TerminalPane } from './TerminalPane'
 import { NewClaudePanelDialog } from './NewClaudePanelDialog'
 import { useAppStore } from '@/store/useAppStore'
+import { useSettingsStore } from '@/store/useSettingsStore'
 import type { RepoRecord } from '../../../preload/index'
 
 interface Props {
@@ -20,7 +22,25 @@ export function ClaudePanelGrid({ repo }: Props): React.JSX.Element {
   const addPanel = useAppStore((s) => s.addPanel)
   const removePanel = useAppStore((s) => s.removePanel)
   const renamePanel = useAppStore((s) => s.renamePanel)
+  const attentionPanels = useAppStore((s) => s.attentionPanels)
+  const markAttention = useAppStore((s) => s.markAttention)
+  const clearAttention = useAppStore((s) => s.clearAttention)
+  const attentionAlerts = useSettingsStore((s) => s.attentionAlerts)
+  const osNotifications = useSettingsStore((s) => s.osNotifications)
   const [creating, setCreating] = useState(false)
+
+  // Called when a panel rings the bell. Flags it for the in-app highlight and,
+  // if the window isn't focused, raises a native notification (once per wait).
+  const handleAttention = (panel: { id: string; title: string }): void => {
+    const alreadyWaiting = !!useAppStore.getState().attentionPanels[panel.id]
+    markAttention(panel.id)
+    if (!alreadyWaiting && osNotifications && !document.hasFocus()) {
+      window.api.notify.show({
+        title: 'Claude is waiting for your response',
+        body: `${repo.name} · ${panel.title}`
+      })
+    }
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -52,34 +72,57 @@ export function ClaudePanelGrid({ repo }: Props): React.JSX.Element {
             gridAutoRows: 'minmax(240px, 1fr)'
           }}
         >
-          {panels.map((panel) => (
-            <div
-              key={panel.id}
-              className="flex min-h-0 flex-col overflow-hidden rounded-lg border bg-[#0a0a0a]"
-            >
-              <div className="flex items-center gap-2 border-b bg-card/60 px-2 py-1">
-                <Sparkles className="size-3.5 shrink-0 text-muted-foreground" />
-                <PanelTitle
-                  title={panel.title}
-                  onRename={(title) => renamePanel(repo.id, panel.id, title)}
-                />
-                <button
-                  onClick={() => removePanel(repo.id, panel.id)}
-                  className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-background hover:text-destructive"
-                  title="Close panel"
+          {panels.map((panel) => {
+            const waiting = attentionAlerts && !!attentionPanels[panel.id]
+            return (
+              <div
+                key={panel.id}
+                onMouseDown={() => clearAttention(panel.id)}
+                className={cn(
+                  'flex min-h-0 flex-col overflow-hidden rounded-lg border bg-[#0a0a0a] transition-shadow',
+                  waiting && 'border-amber-400/70 shadow-[0_0_0_1px_rgb(251_191_36/0.5)]'
+                )}
+              >
+                <div
+                  className={cn(
+                    'flex items-center gap-2 border-b px-2 py-1 transition-colors',
+                    waiting ? 'bg-amber-400/15' : 'bg-card/60'
+                  )}
                 >
-                  <X className="size-3.5" />
-                </button>
+                  {waiting ? (
+                    <Bell className="size-3.5 shrink-0 animate-pulse text-amber-400" />
+                  ) : (
+                    <Sparkles className="size-3.5 shrink-0 text-muted-foreground" />
+                  )}
+                  <PanelTitle
+                    title={panel.title}
+                    onRename={(title) => renamePanel(repo.id, panel.id, title)}
+                  />
+                  {waiting && (
+                    <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-amber-400">
+                      Waiting
+                    </span>
+                  )}
+                  <button
+                    onClick={() => removePanel(repo.id, panel.id)}
+                    className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-background hover:text-destructive"
+                    title="Close panel"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </div>
+                <div className="min-h-0 flex-1">
+                  <TerminalPane
+                    ptyId={`claude-${repo.id}-${panel.id}`}
+                    repoPath={repo.path}
+                    command={panel.command}
+                    onAttention={() => handleAttention(panel)}
+                    onActivity={() => clearAttention(panel.id)}
+                  />
+                </div>
               </div>
-              <div className="min-h-0 flex-1">
-                <TerminalPane
-                  ptyId={`claude-${repo.id}-${panel.id}`}
-                  repoPath={repo.path}
-                  command={panel.command}
-                />
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 

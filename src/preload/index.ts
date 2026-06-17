@@ -122,6 +122,11 @@ const api = {
       ipcRenderer.invoke('git:workflows', repoPath),
     dispatchBuild: (repoPath: string, workflowId: string, ref?: string): Promise<GitResult> =>
       ipcRenderer.invoke('git:dispatchBuild', repoPath, workflowId, ref)
+  },
+  notify: {
+    show: (opts: { title: string; body: string }): Promise<void> =>
+      ipcRenderer.invoke('notify:show', opts),
+    setBadge: (count: number): Promise<void> => ipcRenderer.invoke('notify:setBadge', count)
   }
 }
 

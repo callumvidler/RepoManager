@@ -8,6 +8,7 @@ import {
   Palette,
   SquareTerminal,
   Sparkles,
+  Bell,
   type LucideIcon
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -26,12 +27,13 @@ interface Props {
   onClose: () => void
 }
 
-type TabId = 'appearance' | 'terminal' | 'claude'
+type TabId = 'appearance' | 'terminal' | 'claude' | 'notifications'
 
 const TABS: { id: TabId; label: string; icon: LucideIcon }[] = [
   { id: 'appearance', label: 'Appearance', icon: Palette },
   { id: 'terminal', label: 'Terminal', icon: SquareTerminal },
-  { id: 'claude', label: 'Claude Code', icon: Sparkles }
+  { id: 'claude', label: 'Claude Code', icon: Sparkles },
+  { id: 'notifications', label: 'Notifications', icon: Bell }
 ]
 
 const THEME_OPTIONS: { value: ThemeMode; label: string; icon: LucideIcon }[] = [
@@ -199,6 +201,29 @@ export function SettingsDialog({ open, onClose }: Props): React.JSX.Element | nu
                     placeholder="claude"
                     className="max-w-md font-mono text-xs"
                   />
+                </Field>
+              </Section>
+            )}
+
+            {tab === 'notifications' && (
+              <Section
+                title="Notifications"
+                description="Stay aware of sessions that need you across repos."
+              >
+                <Field
+                  label="Waiting-for-response alerts"
+                  description="Highlight a panel and badge its repo in the sidebar when a Claude session rings the terminal bell — i.e. it finished a turn and is waiting for your reply."
+                  inline
+                >
+                  <Toggle checked={s.attentionAlerts} onChange={s.setAttentionAlerts} />
+                </Field>
+
+                <Field
+                  label="System notifications"
+                  description="Raise a native OS notification (and dock / taskbar badge) when a session starts waiting while RepoManager isn't focused."
+                  inline
+                >
+                  <Toggle checked={s.osNotifications} onChange={s.setOsNotifications} />
                 </Field>
               </Section>
             )}

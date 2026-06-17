@@ -10,6 +10,16 @@ export interface SettingsState {
   terminalFontFamily: string
   /** Auto-start a Claude Code panel the first time a repo is opened. */
   autoStartClaude: boolean
+  /**
+   * Highlight panels and badge sidebar repos when a Claude session rings the
+   * terminal bell (i.e. it's waiting for the user's response).
+   */
+  attentionAlerts: boolean
+  /**
+   * Also raise a native OS notification (and dock/taskbar badge) when a session
+   * starts waiting while the app window isn't focused.
+   */
+  osNotifications: boolean
   /** Base command spawned for new Claude panels. */
   claudeCommand: string
   /** Default launch options applied to new Claude panels. */
@@ -21,6 +31,8 @@ export interface SettingsState {
   setTerminalFontSize: (size: number) => void
   setTerminalFontFamily: (family: string) => void
   setAutoStartClaude: (value: boolean) => void
+  setAttentionAlerts: (value: boolean) => void
+  setOsNotifications: (value: boolean) => void
   setClaudeCommand: (command: string) => void
   setDefaultModel: (model: string) => void
   setDefaultPermissionMode: (mode: PermissionMode) => void
@@ -33,6 +45,8 @@ export const DEFAULT_SETTINGS = {
   terminalFontSize: 13,
   terminalFontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, monospace',
   autoStartClaude: true,
+  attentionAlerts: true,
+  osNotifications: true,
   claudeCommand: 'claude',
   defaultModel: '',
   defaultPermissionMode: 'default' as PermissionMode,
@@ -48,6 +62,8 @@ export const useSettingsStore = create<SettingsState>()(
         set({ terminalFontSize: Math.min(Math.max(terminalFontSize, 8), 32) }),
       setTerminalFontFamily: (terminalFontFamily) => set({ terminalFontFamily }),
       setAutoStartClaude: (autoStartClaude) => set({ autoStartClaude }),
+      setAttentionAlerts: (attentionAlerts) => set({ attentionAlerts }),
+      setOsNotifications: (osNotifications) => set({ osNotifications }),
       setClaudeCommand: (claudeCommand) => set({ claudeCommand }),
       setDefaultModel: (defaultModel) => set({ defaultModel }),
       setDefaultPermissionMode: (defaultPermissionMode) => set({ defaultPermissionMode }),

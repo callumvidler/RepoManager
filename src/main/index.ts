@@ -5,10 +5,14 @@ import appIcon from '../icons/repo-manager-fork.png?asset'
 import { registerRepoHandlers } from './ipc/repos'
 import { registerPtyHandlers, killAllPtys } from './ipc/pty'
 import { registerGitHandlers } from './ipc/git'
+import { registerNotifyHandlers } from './ipc/notify'
 import { getLoginShellEnv } from './shell-env'
 
+/** The primary app window, used by notification handlers to focus on click. */
+let mainWindow: BrowserWindow | null = null
+
 function createWindow(): void {
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
     minWidth: 900,
@@ -28,7 +32,10 @@ function createWindow(): void {
     }
   })
 
-  mainWindow.on('ready-to-show', () => mainWindow.show())
+  mainWindow.on('ready-to-show', () => mainWindow?.show())
+  mainWindow.on('closed', () => {
+    mainWindow = null
+  })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
@@ -55,6 +62,7 @@ app.whenReady().then(() => {
   registerRepoHandlers()
   registerPtyHandlers()
   registerGitHandlers()
+  registerNotifyHandlers(() => mainWindow)
 
   createWindow()
 
