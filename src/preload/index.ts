@@ -37,6 +37,24 @@ export interface GitResult {
   error?: string
 }
 
+export interface GitBranches {
+  branches: string[]
+  current?: string
+}
+
+export type ReleaseType = 'patch' | 'minor' | 'major'
+
+export interface GitVersions {
+  current?: string
+  tags: string[]
+  isNodeProject: boolean
+}
+
+export interface BumpResult extends GitResult {
+  version?: string
+  tag?: string
+}
+
 const api = {
   repos: {
     list: (): Promise<RepoRecord[]> => ipcRenderer.invoke('repos:list'),
@@ -77,7 +95,17 @@ const api = {
     status: (repoPath: string): Promise<GitStatus> => ipcRenderer.invoke('git:status', repoPath),
     commit: (repoPath: string, subject: string, description?: string): Promise<GitResult> =>
       ipcRenderer.invoke('git:commit', repoPath, subject, description),
-    push: (repoPath: string): Promise<GitResult> => ipcRenderer.invoke('git:push', repoPath)
+    push: (repoPath: string): Promise<GitResult> => ipcRenderer.invoke('git:push', repoPath),
+    branches: (repoPath: string): Promise<GitBranches> =>
+      ipcRenderer.invoke('git:branches', repoPath),
+    checkout: (repoPath: string, branch: string): Promise<GitResult> =>
+      ipcRenderer.invoke('git:checkout', repoPath, branch),
+    createBranch: (repoPath: string, name: string): Promise<GitResult> =>
+      ipcRenderer.invoke('git:createBranch', repoPath, name),
+    versions: (repoPath: string): Promise<GitVersions> =>
+      ipcRenderer.invoke('git:versions', repoPath),
+    bumpVersion: (repoPath: string, type: ReleaseType): Promise<BumpResult> =>
+      ipcRenderer.invoke('git:bumpVersion', repoPath, type)
   }
 }
 

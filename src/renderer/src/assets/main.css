@@ -91,6 +91,23 @@ body {
   font-family:
     ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   overflow: hidden;
+  /* App chrome reads like a native app — text isn't selectable by default. */
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: default;
+}
+
+/* Re-enable selection where copying text is genuinely useful: editable fields,
+   terminals (to copy output), and code/preview blocks. */
+input,
+textarea,
+[contenteditable='true'],
+.xterm,
+.xterm * ,
+code,
+pre {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 /* Let xterm fill its pane */

@@ -1,6 +1,8 @@
 import { ipcMain } from 'electron'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
+import { readFile } from 'fs/promises'
+import { join } from 'path'
 import { getLoginShellEnv } from '../shell-env'
 import { isValidDir } from './repos'
 
@@ -21,6 +23,24 @@ export interface GitResult {
   error?: string
 }
 
+export interface GitBranches {
+  branches: string[]
+  current?: string
+}
+
+export type ReleaseType = 'patch' | 'minor' | 'major'
+
+export interface GitVersions {
+  current?: string
+  tags: string[]
+  isNodeProject: boolean
+}
+
+export interface BumpResult extends GitResult {
+  version?: string
+  tag?: string
+}
+
 async function git(repoPath: string, args: string[]): Promise<{ stdout: string; stderr: string }> {
   const env = await getLoginShellEnv()
   return execFileAsync('git', args, {
@@ -39,6 +59,34 @@ function errText(err: unknown): string {
     if (e.message) return e.message
   }
   return String(err)
+}
+
+async function readPackageVersion(repoPath: string): Promise<string | undefined> {
+  try {
+    const raw = await readFile(join(repoPath, 'package.json'), 'utf8')
+    const pkg = JSON.parse(raw) as { version?: string }
+    return typeof pkg.version === 'string' ? pkg.version : undefined
+  } catch {
+    return undefined
+  }
+}
+
+export function nextVersion(current: string, type: ReleaseType): string | null {
+  // Strip a leading "v" and any pre-release/build metadata, then bump.
+  const m = current.replace(/^v/, '').match(/^(\d+)\.(\d+)\.(\d+)/)
+  if (!m) return null
+  let [major, minor, patch] = [Number(m[1]), Number(m[2]), Number(m[3])]
+  if (type === 'major') {
+    major += 1
+    minor = 0
+    patch = 0
+  } else if (type === 'minor') {
+    minor += 1
+    patch = 0
+  } else {
+    patch += 1
+  }
+  return `${major}.${minor}.${patch}`
 }
 
 export function registerGitHandlers(): void {
@@ -92,6 +140,46 @@ export function registerGitHandlers(): void {
     }
   )
 
+  ipcMain.handle('git:branches', async (_e, repoPath: string): Promise<GitBranches> => {
+    if (!isValidDir(repoPath)) return { branches: [] }
+    try {
+      const { stdout } = await git(repoPath, ['branch', '--format=%(refname:short)'])
+      const branches = stdout
+        .split('\n')
+        .map((l) => l.trim())
+        .filter(Boolean)
+      const { stdout: cur } = await git(repoPath, ['rev-parse', '--abbrev-ref', 'HEAD'])
+      return { branches, current: cur.trim() }
+    } catch {
+      return { branches: [] }
+    }
+  })
+
+  ipcMain.handle('git:checkout', async (_e, repoPath: string, branch: string): Promise<GitResult> => {
+    if (!isValidDir(repoPath)) return { ok: false, error: 'Folder not found' }
+    if (!branch?.trim()) return { ok: false, error: 'Branch name is required' }
+    try {
+      const { stdout, stderr } = await git(repoPath, ['checkout', branch.trim()])
+      return { ok: true, output: `${stdout}${stderr}`.trim() }
+    } catch (err) {
+      return { ok: false, error: errText(err) }
+    }
+  })
+
+  ipcMain.handle(
+    'git:createBranch',
+    async (_e, repoPath: string, name: string): Promise<GitResult> => {
+      if (!isValidDir(repoPath)) return { ok: false, error: 'Folder not found' }
+      if (!name?.trim()) return { ok: false, error: 'Branch name is required' }
+      try {
+        const { stdout, stderr } = await git(repoPath, ['checkout', '-b', name.trim()])
+        return { ok: true, output: `${stdout}${stderr}`.trim() }
+      } catch (err) {
+        return { ok: false, error: errText(err) }
+      }
+    }
+  )
+
   ipcMain.handle('git:push', async (_e, repoPath: string): Promise<GitResult> => {
     if (!isValidDir(repoPath)) return { ok: false, error: 'Folder not found' }
     try {
@@ -109,4 +197,74 @@ export function registerGitHandlers(): void {
       return { ok: false, error: errText(err) }
     }
   })
+
+  ipcMain.handle('git:versions', async (_e, repoPath: string): Promise<GitVersions> => {
+    if (!isValidDir(repoPath)) return { tags: [], isNodeProject: false }
+    const current = await readPackageVersion(repoPath)
+    let tags: string[] = []
+    try {
+      // Version-like tags, newest first.
+      const { stdout } = await git(repoPath, [
+        'tag',
+        '--list',
+        '--sort=-version:refname',
+        'v[0-9]*',
+        '[0-9]*'
+      ])
+      tags = stdout
+        .split('\n')
+        .map((l) => l.trim())
+        .filter(Boolean)
+    } catch {
+      tags = []
+    }
+    return { current, tags, isNodeProject: current !== undefined }
+  })
+
+  ipcMain.handle(
+    'git:bumpVersion',
+    async (_e, repoPath: string, type: ReleaseType): Promise<BumpResult> => {
+      if (!isValidDir(repoPath)) return { ok: false, error: 'Folder not found' }
+      if (type !== 'patch' && type !== 'minor' && type !== 'major') {
+        return { ok: false, error: 'Invalid release type' }
+      }
+      const current = await readPackageVersion(repoPath)
+      if (current === undefined) {
+        return { ok: false, error: 'No package.json with a version field found' }
+      }
+      try {
+        const env = await getLoginShellEnv()
+        // `npm version` bumps package.json, creates a commit and an annotated tag.
+        // It requires a clean working tree, which keeps the release commit focused.
+        const { stdout } = await execFileAsync(
+          'npm',
+          ['version', type, '-m', 'chore: release v%s'],
+          {
+            cwd: repoPath,
+            env: env as { [key: string]: string },
+            encoding: 'utf8',
+            maxBuffer: 4 * 1024 * 1024
+          }
+        )
+        const version = (await readPackageVersion(repoPath)) ?? stdout.trim().replace(/^v/, '')
+        const tag = `v${version}`
+
+        // Push the release commit (setting upstream if needed) and the new tag,
+        // which is what triggers the repo's GitHub Actions build.
+        const { stdout: branch } = await git(repoPath, ['rev-parse', '--abbrev-ref', 'HEAD'])
+        let pushArgs = ['push']
+        try {
+          await git(repoPath, ['rev-parse', '--abbrev-ref', '@{u}'])
+        } catch {
+          pushArgs = ['push', '-u', 'origin', branch.trim()]
+        }
+        await git(repoPath, pushArgs)
+        await git(repoPath, ['push', 'origin', tag])
+
+        return { ok: true, version, tag, output: `Released ${tag} and pushed` }
+      } catch (err) {
+        return { ok: false, error: errText(err) }
+      }
+    }
+  )
 }

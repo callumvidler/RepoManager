@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import type { Effort, PermissionMode } from '@/lib/claude'
 
 export type ThemeMode = 'dark' | 'light' | 'system'
 
@@ -9,14 +10,21 @@ export interface SettingsState {
   terminalFontFamily: string
   /** Auto-start a Claude Code panel the first time a repo is opened. */
   autoStartClaude: boolean
-  /** Command spawned for new Claude panels. */
+  /** Base command spawned for new Claude panels. */
   claudeCommand: string
+  /** Default launch options applied to new Claude panels. */
+  defaultModel: string
+  defaultPermissionMode: PermissionMode
+  defaultEffort: Effort
 
   setTheme: (theme: ThemeMode) => void
   setTerminalFontSize: (size: number) => void
   setTerminalFontFamily: (family: string) => void
   setAutoStartClaude: (value: boolean) => void
   setClaudeCommand: (command: string) => void
+  setDefaultModel: (model: string) => void
+  setDefaultPermissionMode: (mode: PermissionMode) => void
+  setDefaultEffort: (effort: Effort) => void
   reset: () => void
 }
 
@@ -25,7 +33,10 @@ export const DEFAULT_SETTINGS = {
   terminalFontSize: 13,
   terminalFontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, monospace',
   autoStartClaude: true,
-  claudeCommand: 'claude'
+  claudeCommand: 'claude',
+  defaultModel: '',
+  defaultPermissionMode: 'default' as PermissionMode,
+  defaultEffort: '' as Effort
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -38,6 +49,9 @@ export const useSettingsStore = create<SettingsState>()(
       setTerminalFontFamily: (terminalFontFamily) => set({ terminalFontFamily }),
       setAutoStartClaude: (autoStartClaude) => set({ autoStartClaude }),
       setClaudeCommand: (claudeCommand) => set({ claudeCommand }),
+      setDefaultModel: (defaultModel) => set({ defaultModel }),
+      setDefaultPermissionMode: (defaultPermissionMode) => set({ defaultPermissionMode }),
+      setDefaultEffort: (defaultEffort) => set({ defaultEffort }),
       reset: () => set({ ...DEFAULT_SETTINGS })
     }),
     { name: 'repo-manager-settings' }

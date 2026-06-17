@@ -3,6 +3,8 @@ import { GitBranch, GitCommit, Upload, X, Loader2, Check, AlertCircle, RefreshCw
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { BranchSwitcher } from './BranchSwitcher'
+import { ReleaseSwitcher } from './ReleaseSwitcher'
 import type { GitStatus, RepoRecord } from '../../../preload/index'
 
 interface Props {
@@ -63,16 +65,29 @@ export function GitControls({ repo }: Props): JSX.Element | null {
         </span>
       )}
 
-      {status?.branch && (
-        <span className="flex items-center gap-1 text-xs text-muted-foreground" title="Current branch">
-          <GitBranch className="size-3.5" />
-          {status.branch}
+      {status?.isRepo && (
+        <div className="flex items-center gap-1">
+          <BranchSwitcher
+            repo={repo}
+            currentBranch={status.branch}
+            onChanged={(ok, message) => {
+              flash({ kind: ok ? 'ok' : 'error', text: message })
+              void refresh()
+            }}
+          />
           {!!status.changedFiles && (
-            <span className="ml-1 rounded bg-accent px-1 text-[10px] text-accent-foreground">
+            <span className="rounded bg-accent px-1 text-[10px] text-accent-foreground">
               {status.changedFiles} changed
             </span>
           )}
-        </span>
+          <ReleaseSwitcher
+            repo={repo}
+            onReleased={(ok, message) => {
+              flash({ kind: ok ? 'ok' : 'error', text: message })
+              void refresh()
+            }}
+          />
+        </div>
       )}
 
       <Button

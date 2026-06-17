@@ -1,6 +1,17 @@
 import { create } from 'zustand'
 import type { RepoRecord } from '../../../preload/index'
 import { useSettingsStore } from './useSettingsStore'
+import { buildClaudeCommand } from '@/lib/claude'
+
+/** Default command for auto-started panels, applying the user's saved Claude defaults. */
+function defaultClaudeCommand(): string {
+  const s = useSettingsStore.getState()
+  return buildClaudeCommand(s.claudeCommand, {
+    model: s.defaultModel,
+    permissionMode: s.defaultPermissionMode,
+    effort: s.defaultEffort
+  })
+}
 
 let panelCounter = 0
 function nextPanelId(): string {
@@ -19,7 +30,7 @@ function makePanel(index: number, config?: PanelConfig): ClaudePanel {
   return {
     id: nextPanelId(),
     title: config?.title?.trim() || `Claude ${index}`,
-    command: config?.command?.trim() || useSettingsStore.getState().claudeCommand
+    command: config?.command?.trim() || defaultClaudeCommand()
   }
 }
 
