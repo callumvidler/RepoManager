@@ -3,6 +3,7 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { registerRepoHandlers } from './ipc/repos'
 import { registerPtyHandlers, killAllPtys } from './ipc/pty'
+import { registerGitHandlers } from './ipc/git'
 import { getLoginShellEnv } from './shell-env'
 
 function createWindow(): void {
@@ -49,6 +50,7 @@ app.whenReady().then(() => {
 
   registerRepoHandlers()
   registerPtyHandlers()
+  registerGitHandlers()
 
   createWindow()
 

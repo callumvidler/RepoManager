@@ -8,10 +8,19 @@ function nextPanelId(): string {
   return `panel-${Date.now().toString(36)}-${panelCounter}`
 }
 
-function makePanel(index: number): ClaudePanel {
+export interface PanelConfig {
+  title?: string
+  command?: string
+}
+
+function makePanel(index: number, config?: PanelConfig): ClaudePanel {
   // Capture the command at creation so changing the setting later doesn't
   // disrupt already-running panels.
-  return { id: nextPanelId(), title: `Claude ${index}`, command: useSettingsStore.getState().claudeCommand }
+  return {
+    id: nextPanelId(),
+    title: config?.title?.trim() || `Claude ${index}`,
+    command: config?.command?.trim() || useSettingsStore.getState().claudeCommand
+  }
 }
 
 export interface ClaudePanel {
@@ -34,7 +43,7 @@ interface AppState {
   selectRepo: (id: string | null) => void
 
   panelsFor: (repoId: string) => ClaudePanel[]
-  addPanel: (repoId: string) => void
+  addPanel: (repoId: string, config?: PanelConfig) => void
   removePanel: (repoId: string, panelId: string) => void
   renamePanel: (repoId: string, panelId: string, title: string) => void
 }
@@ -101,11 +110,14 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   panelsFor: (repoId) => get().panelsByRepo[repoId] ?? [],
 
-  addPanel: (repoId) =>
+  addPanel: (repoId, config) =>
     set((state) => {
       const current = state.panelsByRepo[repoId] ?? []
       return {
-        panelsByRepo: { ...state.panelsByRepo, [repoId]: [...current, makePanel(current.length + 1)] }
+        panelsByRepo: {
+          ...state.panelsByRepo,
+          [repoId]: [...current, makePanel(current.length + 1, config)]
+        }
       }
     }),
 

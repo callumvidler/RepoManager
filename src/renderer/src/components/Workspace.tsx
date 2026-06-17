@@ -2,6 +2,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { FolderGit2 } from 'lucide-react'
 import { ClaudePanelGrid } from './ClaudePanelGrid'
 import { AppOutputTerminal } from './AppOutputTerminal'
+import { GitControls } from './GitControls'
 import { useAppStore } from '@/store/useAppStore'
 import type { RepoRecord } from '../../../preload/index'
 
@@ -45,9 +46,10 @@ function WorkspaceBody({ repo }: { repo: RepoRecord }): JSX.Element {
         className="flex items-center gap-2 border-b px-4 py-2"
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       >
-        <FolderGit2 className="size-4 text-muted-foreground" />
-        <span className="text-sm font-semibold">{repo.name}</span>
-        <span className="truncate text-xs text-muted-foreground">{repo.path}</span>
+        <FolderGit2 className="size-4 shrink-0 text-muted-foreground" />
+        <span className="shrink-0 text-sm font-semibold">{repo.name}</span>
+        <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{repo.path}</span>
+        <GitControls repo={repo} />
       </div>
 
       <PanelGroup

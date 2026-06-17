@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Plus, X, Sparkles, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TerminalPane } from './TerminalPane'
+import { NewClaudePanelDialog } from './NewClaudePanelDialog'
 import { useAppStore } from '@/store/useAppStore'
 import type { RepoRecord } from '../../../preload/index'
 
@@ -19,6 +20,7 @@ export function ClaudePanelGrid({ repo }: Props): JSX.Element {
   const addPanel = useAppStore((s) => s.addPanel)
   const removePanel = useAppStore((s) => s.removePanel)
   const renamePanel = useAppStore((s) => s.renamePanel)
+  const [creating, setCreating] = useState(false)
 
   return (
     <div className="flex h-full flex-col">
@@ -28,7 +30,7 @@ export function ClaudePanelGrid({ repo }: Props): JSX.Element {
           Claude Code · {panels.length} panel{panels.length === 1 ? '' : 's'}
         </span>
         <div className="flex-1" />
-        <Button size="sm" variant="secondary" onClick={() => addPanel(repo.id)}>
+        <Button size="sm" variant="secondary" onClick={() => setCreating(true)}>
           <Plus className="size-3.5" /> Add panel
         </Button>
       </div>
@@ -37,7 +39,7 @@ export function ClaudePanelGrid({ repo }: Props): JSX.Element {
         <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
           <Sparkles className="size-8 text-muted-foreground/50" />
           <div className="text-sm text-muted-foreground">No Claude panels open.</div>
-          <Button onClick={() => addPanel(repo.id)}>
+          <Button onClick={() => setCreating(true)}>
             <Plus className="size-4" /> Start a Claude session
           </Button>
         </div>
@@ -79,6 +81,14 @@ export function ClaudePanelGrid({ repo }: Props): JSX.Element {
             </div>
           ))}
         </div>
+      )}
+
+      {creating && (
+        <NewClaudePanelDialog
+          defaultTitle={`Claude ${panels.length + 1}`}
+          onCreate={(config) => addPanel(repo.id, config)}
+          onClose={() => setCreating(false)}
+        />
       )}
     </div>
   )

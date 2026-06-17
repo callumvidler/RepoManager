@@ -22,6 +22,21 @@ export interface PtyExit {
   signal?: number
 }
 
+export interface GitStatus {
+  isRepo: boolean
+  branch?: string
+  changedFiles?: number
+  ahead?: number
+  hasUpstream?: boolean
+  clean?: boolean
+}
+
+export interface GitResult {
+  ok: boolean
+  output?: string
+  error?: string
+}
+
 const api = {
   repos: {
     list: (): Promise<RepoRecord[]> => ipcRenderer.invoke('repos:list'),
@@ -57,6 +72,12 @@ const api = {
       ipcRenderer.on('pty:exit', handler)
       return () => ipcRenderer.removeListener('pty:exit', handler)
     }
+  },
+  git: {
+    status: (repoPath: string): Promise<GitStatus> => ipcRenderer.invoke('git:status', repoPath),
+    commit: (repoPath: string, subject: string, description?: string): Promise<GitResult> =>
+      ipcRenderer.invoke('git:commit', repoPath, subject, description),
+    push: (repoPath: string): Promise<GitResult> => ipcRenderer.invoke('git:push', repoPath)
   }
 }
 
