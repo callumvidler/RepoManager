@@ -1,0 +1,26 @@
+appId: com.repomanager.app
+productName: RepoManager
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**/*
+  - package.json
+# node-pty is a native module — it must be unpacked from the asar so the .node
+# binary can be loaded at runtime.
+asarUnpack:
+  - '**/node_modules/node-pty/**'
+mac:
+  target:
+    - dmg
+    - zip
+  category: public.app-category.developer-tools
+  artifactName: ${productName}-${version}-${arch}.${ext}
+win:
+  target:
+    - nsis
+linux:
+  target:
+    - AppImage
+  category: Development
+npmRebuild: true
