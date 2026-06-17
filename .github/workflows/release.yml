@@ -1,0 +1,55 @@
+name: Release
+
+# Triggered by the version tags that the in-app "Release" button pushes
+# (e.g. v0.1.1). Can also be run manually from the Actions tab.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+# electron-builder needs write access to create/update the GitHub Release.
+permissions:
+  contents: write
+
+jobs:
+  release:
+    strategy:
+      # Build every platform even if one fails, so the draft gets as many
+      # installers as possible in one run.
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+          - os: windows-latest
+          - os: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # Runs the postinstall electron-rebuild so node-pty matches this
+      # platform's Electron ABI.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build renderer & main
+        run: npm run build
+
+      # electron-builder uploads the installers directly to a DRAFT GitHub
+      # Release as release assets. We deliberately do NOT use
+      # actions/upload-artifact, so nothing is charged to the artifact quota.
+      - name: Package & publish to draft release
+        run: npx electron-builder --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # No signing certs in CI — skip macOS auto-discovery so the build
+          # doesn't fail trying to sign/notarize.
+          CSC_IDENTITY_AUTO_DISCOVERY: false

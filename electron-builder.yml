@@ -24,3 +24,9 @@ linux:
     - AppImage
   category: Development
 npmRebuild: true
+# Publish installers straight to a GitHub Release as release assets (which do
+# NOT count against the Actions artifact storage quota). `releaseType: draft`
+# keeps the release hidden under the Releases tab until you publish it.
+publish:
+  provider: github
+  releaseType: draft
