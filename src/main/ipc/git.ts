@@ -305,13 +305,21 @@ export function registerGitHandlers(): void {
       if (!isValidDir(repoPath)) return { ok: false, error: 'Folder not found' }
       if (!workflowId?.trim()) return { ok: false, error: 'Workflow is required' }
       try {
-        // Default to the current branch when no explicit ref (e.g. a version tag) is given.
+        const env = await getLoginShellEnv()
         let targetRef = ref?.trim()
-        if (!targetRef) {
+        if (targetRef) {
+          // A version tag was given (a "rebuild without bumping"). Move the tag to
+          // the current HEAD and force-push it, so the rebuild runs the latest
+          // pushed code while keeping the version number the same. GitHub reads
+          // both the workflow file and the checked-out source from this ref, so
+          // the tag must point at the commit we actually want to build.
+          await git(repoPath, ['tag', '-f', targetRef])
+          await git(repoPath, ['push', '-f', 'origin', targetRef])
+        } else {
+          // No tag — build the current branch tip.
           const { stdout } = await git(repoPath, ['rev-parse', '--abbrev-ref', 'HEAD'])
           targetRef = stdout.trim()
         }
-        const env = await getLoginShellEnv()
         const { stdout, stderr } = await execFileAsync(
           'gh',
           ['workflow', 'run', workflowId.trim(), '--ref', targetRef],

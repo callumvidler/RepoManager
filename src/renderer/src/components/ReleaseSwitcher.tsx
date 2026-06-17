@@ -93,10 +93,12 @@ export function ReleaseSwitcher({ repo, onReleased }: Props): React.JSX.Element 
   const rebuild = async (wf: WorkflowInfo): Promise<void> => {
     setRebuilding(wf.id)
     setError(null)
-    // Rebuild the exact tagged commit when this version is tagged; otherwise
-    // fall back to the current branch (handled in the main process).
+    // Re-point the current version's tag at the latest commit and rebuild from it,
+    // keeping the version number the same (the main process moves & force-pushes
+    // the tag). Reuse the existing tag's exact name if present, else default to a
+    // v-prefixed tag. With no current version, fall back to the current branch.
     const tag = current
-      ? tags.find((t) => t.replace(/^v/, '') === current)
+      ? (tags.find((t) => t.replace(/^v/, '') === current) ?? `v${current}`)
       : undefined
     const res = await window.api.git.dispatchBuild(repo.path, wf.id, tag)
     setRebuilding(null)
